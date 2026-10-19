@@ -1129,10 +1129,24 @@ func (outbound *Outbound) NSLookup(name string, qtype uint16) (uint32, []net.IP)
 	hint := outbound.Hint
 
 	if qtype == 0 {
+		// Honor the DNS "type=A/AAAA" option on the outbound resolution
+		// path as well. It was previously respected only by NSRequest (the
+		// DNS server path), so outbounds still issued AAAA queries under
+		// type=A and could adopt poisoned answers injected into DNS
+		// responses (e.g. 2a03:2880:...:face:b00c...).
+		var typeOption string
+		if u, err := url.Parse(outbound.DNS); err == nil && u.RawQuery != "" {
+			typeOption = ParseOptions(u.RawQuery).Type
+		}
+
 		ipv4 := hint&HINT_IPV4 != 0
 		ipv6 := hint&HINT_IPV6 != 0
 		if (outbound.Protocol == NAT64) {
 			qtype = 1
+		} else if typeOption == "A" {
+			qtype = 1
+		} else if typeOption == "AAAA" {
+			qtype = 28
 		} else if ipv4 == ipv6 {
 			ch := make(chan []net.IP, 1)
 			var index uint32

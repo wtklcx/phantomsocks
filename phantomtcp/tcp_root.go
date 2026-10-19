@@ -171,10 +171,16 @@ func (outbound *Outbound) dial(host string, port int, b []byte, offset int, leng
 				}
 			}
 
-			conn, err = net.DialTCP("tcp", laddr, raddr)
-			if err == nil {
-				conn, err = outbound.ProxyHandshake(conn, nil, host, port)
+			// net.DialTCP returns a typed nil ((*net.TCPConn)(nil)) inside
+			// a non-nil net.Conn interface on failure, which defeats the
+			// "conn != nil" guard below and panics in conn.Close(). Assign
+			// the connection only when the dial succeeded.
+			tcpConn, dialErr := net.DialTCP("tcp", laddr, raddr)
+			if dialErr != nil {
+				return nil, nil, dialErr
 			}
+			conn = tcpConn
+			conn, err = outbound.ProxyHandshake(conn, nil, host, port)
 
 			if err == nil && b != nil {
 				if length > 0 {
@@ -192,7 +198,9 @@ func (outbound *Outbound) dial(host string, port int, b []byte, offset int, leng
 			}
 
 			if err != nil {
-				conn.Close()
+				if conn != nil {
+					conn.Close()
+				}
 				return nil, nil, err
 			}
 
