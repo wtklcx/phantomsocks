@@ -69,7 +69,7 @@ func (outbound *Outbound) dial(host string, port int, b []byte, offset int, leng
 	hint := outbound.Hint
 
 	if hint&HINT_FAKE == 0 {
-		raddr := raddrs[mathrand.Intn(len(raddrs))]
+		raddr := raddrs[preferredTCPIndex(raddrs)]
 		var laddr *net.TCPAddr = nil
 		if device != "" {
 			laddr, err = GetLocalTCPAddr(device, raddr.IP.To4() == nil)
@@ -161,7 +161,7 @@ func (outbound *Outbound) dial(host string, port int, b []byte, offset int, leng
 		}
 
 		if PassiveMode {
-			raddr := raddrs[mathrand.Intn(len(raddrs))]
+			raddr := raddrs[preferredTCPIndex(raddrs)]
 
 			var laddr *net.TCPAddr = nil
 			if device != "" {

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
 	"net"
 	"strconv"
 	"strings"
@@ -577,7 +576,7 @@ func (outbound *Outbound) ProxyHandshake(conn net.Conn, synpacket *ConnectionInf
 			if outbound.DNS != "" {
 				_, ips := outbound.NSLookup(host, 0)
 				if len(ips) > 0 {
-					ip := ips[rand.Intn(len(ips))]
+					ip := ips[preferredIPIndex(ips)]
 					ip4 := ip.To4()
 					if ip4 != nil {
 						copy(b[:], []byte{0x05, 0x01, 0x00, 0x01})
